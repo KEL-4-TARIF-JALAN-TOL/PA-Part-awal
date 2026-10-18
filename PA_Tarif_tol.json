@@ -1,0 +1,42 @@
+{
+    "users": {
+        "admin": {
+            "password": "admin123",
+            "role": "admin",
+            "saldo": 0
+        }
+    },
+    "tarif": [
+        {
+            "id": "R001",
+            "asal": "Cawang",
+            "tujuan": "Tomang",
+            "tarif_dasar": 10000
+        },
+        {
+            "id": "R002",
+            "asal": "Tomang",
+            "tujuan": "Cengkareng",
+            "tarif_dasar": 9500
+        },
+        {
+            "id": "R003",
+            "asal": "Jakarta",
+            "tujuan": "Cikampek",
+            "tarif_dasar": 17000
+        },
+        {
+            "id": "R004",
+            "asal": "Cikampek",
+            "tujuan": "Palimanan",
+            "tarif_dasar": 50000
+        },
+        {
+            "id": "R005",
+            "asal": "Semarang",
+            "tujuan": "Solo",
+            "tarif_dasar": 38000
+        }
+    ],
+    "transaksi": []
+}
