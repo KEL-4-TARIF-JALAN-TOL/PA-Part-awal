@@ -9,9 +9,9 @@
     "tarif": [
         {
             "id": "R001",
-            "asal": "Cawang",
-            "tujuan": "Tomang",
-            "tarif_dasar": 10000
+            "asal": "Kamboja",
+            "tujuan": "Myanmar",
+            "tarif_dasar": 1000
         },
         {
             "id": "R002",
