@@ -176,15 +176,12 @@ def login(users):
 def menu_admin(username_admin, users, tarif, tranksaksi):
     while True:
         print("SELAMAT DATANG DI MENU ADMIN")
+        print("1. menu crud tarif")
         pilihan = int(input("pilih nomor 1-5: "))
 
         if pilihan == 1:
             menu_crud_tarif(tarif)
-        elif pilihan == "2":
-            print(tampilkan_daftar_user)
-        elif pilihan == "3":
-            print(tampilkan_semua_tranksaksi)
-        elif pilihan == "4":
+        elif pilihan == 4:
             print("log out berhasil. Kembali ke menu utama")
         time.sleep(1)
         break
@@ -193,6 +190,11 @@ def menu_admin(username_admin, users, tarif, tranksaksi):
 def menu_crud_tarif(tarif):
     while True:
         print("KELOLA TARIF TOL PILIHAN 1-5")
+        print("1. Tampilkan tarif")
+        print("2. Tambah tarif")
+        print("3. Ubah tarif")
+        print("4. Hapus tarif")
+        print("5. kembali ke menu admin ")
         pilihan = int(input("pilihlah angka dari 1 sampai 5: "))
 
         if pilihan == 1:
@@ -203,7 +205,8 @@ def menu_crud_tarif(tarif):
             ubah_tarif(tarif)
         elif pilihan == 4:
             hapus_tarif(tarif)
-        elif pilihan == 5:
+        else:
+            pilihan == 5
             break
 
 
@@ -211,10 +214,24 @@ def menu_crud_tarif(tarif):
 def tambah_tarif(tarif):
     print("TAMBAH TARIF TOL BARU")
     while True:
-        id_baru = input_teks("Masukan ID Rute (misal: R007): ")
+        id_baru = input_teks("Masukan ID Rute (misal: R007): ").upper()
+        
+        if len(id_baru) != 4:
+            print("format harus empat karakter")
+            continue
+
+        if not id_baru.startswith("R"):
+            print("id harus diawali dengan R")
+            continue
+
+        angka_bagian = id_baru[1:]
+        if not angka_bagian.isdigit():
+            print("Setelah huruf 'R' harus berupa 3 digit angka (Contoh: R001)!")
+            continue
+
         duplicate = False 
         for item in tarif:
-            if item["id"].lower() == id_baru.lower():
+            if item["id"] == id_baru.upper():
                 duplicate = True
                 break
         if duplicate:
@@ -256,6 +273,21 @@ def ubah_tarif(tarif):
         print("belum ada data tarif yang bisa diubah")
         return
     id_cari = input_teks("masukan id rute yang ingin diubah: ")
+    if len(id_cari) != 4:
+        print("format harus empat karakter")
+        
+        
+    
+    if not id_cari.startswith("R"):
+        print("id harus diawali dengan R")
+        
+        
+    
+    angka_bagian = id_cari[1:]
+    if not angka_bagian.isdigit():
+        print("Setelah huruf 'R' harus berupa 3 digit angka (Contoh: R001)!")
+        
+        
     found = False
     for i in tarif:
         if i["id"].lower() == id_cari.lower():
@@ -271,6 +303,8 @@ def ubah_tarif(tarif):
     if found:
         simpan_data()
         print("data tarif tol berhasil di perbarui")
+            
+
     else:
         print("id ga ketemu pale")
 
