@@ -31,6 +31,9 @@ def format_rupiah(angka):
 def waktu_sekarang():
     return time.strftime("%Y-%m-%d %H:%M:%S")
 
+def konfir():
+    input( "\nTekan enter untuk melanjutkan...")
+
 def input_int(pesan, minimum=None, maksimum=None):
     while True:
         try:
@@ -39,9 +42,9 @@ def input_int(pesan, minimum=None, maksimum=None):
             print("Input harus berupa angka bulat!")
             continue
         if minimum is not None and nilai < minimum:
-            print(f"Nilai minimal {minimum}.")
+            print(f"input minimal {minimum}.")
         elif maksimum is not None and nilai > maksimum:
-            print(f" Nilai maksimal {maksimum}.")
+            print(f" input maksimal {maksimum}.")
         else:
             return nilai
 
@@ -161,41 +164,52 @@ def registrasi(users):
 def login(users):
     print("=== LOGIN ===")
     for percobaan in range(1, MAX_LOGIN + 1):
-        username = input("Username : ").strip()
+        username = input_teks("Username : ").strip()
         password = pwinput.pwinput("Password : ")
         nama = cari_username(username, users)
-        if nama is not None and users[nama]["password"] == password:
-            print(f"Login berhasil. Selamat datang, {nama}!")
+        if nama is not None and users[nama]["password"] == (password):
+            print(f"[✓] Login berhasil. Selamat datang, {nama}!")
             return nama
-        else:
-            print(f"Username/password salah. Sisa percobaan: {MAX_LOGIN - percobaan}")
-    print("Login gagal 3x. Kembali ke menu utama.")
-    time.sleep(2)
+        print(f"[!] Username/password salah. Sisa percobaan: {MAX_LOGIN - percobaan}")
+    print("[!] Login gagal 3x. Kembali ke menu utama.")
+    time.sleep(1)
     return None
 
-def menu_admin(username_admin, users, tarif, tranksaksi):
+def menu_admin(users, tarif, tranksaksi):
     while True:
+        bersihkan_layar()
         print("SELAMAT DATANG DI MENU ADMIN")
-        print("1. menu crud tarif")
-        pilihan = int(input("pilih nomor 1-5: "))
+        print("1. Menu pengelolaan tarif")
+        print("2. Daftar user")
+        print("3. Riwayat tranksaksi")
+        print("4. Laporan ringkas")
+        print("5. Logout")
+        pilihan = input_int("pilih nomor 1-5: ", 1, 5)
 
+        bersihkan_layar()
         if pilihan == 1:
             menu_crud_tarif(tarif)
+        elif pilihan == 2:
+            daftar_user(users)
+        elif pilihan == 3:
+            riwayat_transaksi(tranksaksi)
         elif pilihan == 4:
-            print("log out berhasil. Kembali ke menu utama")
-        time.sleep(1)
-        break
-    
+            laporan(..)
+        else:
+            print("Log out berhasil. Kembali ke menu utama")
+            return
 
+#-------------PILIHAN 1 MENU ADMIN----------------
 def menu_crud_tarif(tarif):
     while True:
-        print("KELOLA TARIF TOL PILIHAN 1-5")
+        bersihkan_layar()
+        print("===KELOLA TARIF TOL===")
         print("1. Tampilkan tarif")
         print("2. Tambah tarif")
         print("3. Ubah tarif")
         print("4. Hapus tarif")
         print("5. kembali ke menu admin ")
-        pilihan = int(input("pilihlah angka dari 1 sampai 5: "))
+        pilihan = input_int("pilihlah menu (1-5): ", 1, 5)
 
         if pilihan == 1:
             tampilkan_tarif(tarif)
@@ -206,10 +220,9 @@ def menu_crud_tarif(tarif):
         elif pilihan == 4:
             hapus_tarif(tarif)
         else:
-            pilihan == 5
+            print("kembali ke menu admin")
+            konfir()
             break
-
-
 
 def tambah_tarif(tarif):
     print("TAMBAH TARIF TOL BARU")
@@ -219,16 +232,13 @@ def tambah_tarif(tarif):
         if len(id_baru) != 4:
             print("format harus empat karakter")
             continue
-
         if not id_baru.startswith("R"):
             print("id harus diawali dengan R")
             continue
-
         angka_bagian = id_baru[1:]
         if not angka_bagian.isdigit():
             print("Setelah huruf 'R' harus berupa 3 digit angka (Contoh: R001)!")
             continue
-
         duplicate = False 
         for item in tarif:
             if item["id"] == id_baru.upper():
@@ -238,10 +248,9 @@ def tambah_tarif(tarif):
             print("ID SUDAH TERDAFTAR")
         else:
             break
-    asal = input("kota/gerbang asal: ")
-    tujuan = input("kota/gerbang tujuan: ")
-    tarif_dasar = input_int("tarif dasar golongan I (Rp): ", 1000, 1000000)
-
+    asal = input_teks("kota/gerbang asal: ")
+    tujuan = input_teks("kota/gerbang tujuan: ")
+    tarif_dasar = input_int("tarif dasar golongan I (Rp): ", 10000, 1000000)
     data_baru =      {
         "id" : id_baru,
         "asal" : asal,
@@ -250,7 +259,6 @@ def tambah_tarif(tarif):
         }
     tarif.append(data_baru)
     simpan_data()
-
     print("data tarif berhasil ditambahkan")
     time.sleep(2)
 
@@ -258,14 +266,12 @@ def tampilkan_tarif(tarif):
     if len(tarif) == 0:
         print("belum ada data tarif tol")
         return
-
     table = PrettyTable()
     table.field_names = ["id", "Asal", "Tujuan", "Tarif Dasar (Gol 1)"]
-
     for i in tarif:
         table.add_row([i["id"], i["asal"], i["tujuan"], format_rupiah(i["tarif_dasar"])])
     print(table)
-    input("\n tekan enter untuk melanjutkan")
+    konfir()
 
 def ubah_tarif(tarif):
     tampilkan_tarif(tarif)
@@ -275,36 +281,23 @@ def ubah_tarif(tarif):
     id_cari = input_teks("masukan id rute yang ingin diubah: ")
     if len(id_cari) != 4:
         print("format harus empat karakter")
-        
-        
-    
     if not id_cari.startswith("R"):
         print("id harus diawali dengan R")
-        
-        
-    
     angka_bagian = id_cari[1:]
     if not angka_bagian.isdigit():
         print("Setelah huruf 'R' harus berupa 3 digit angka (Contoh: R001)!")
-        
-        
     found = False
     for i in tarif:
         if i["id"].lower() == id_cari.lower():
-
             found = True 
             print("DATA DITEMUKAN. MASUKAN DATA BARU (KOSONGKAN ATAU ISI ULANG): ")
-
             i["asal"] = input_teks(f"Asal [{i['asal']}]: ")
             i["tujuan"] = input_teks(f"Tujuan [{i['tujuan']}]: ")
             i["tarif_dasar"] = input_int(f"Tarif Dasar [{i['tarif_dasar']}]: ", 1000, 10000000)
             break
-
     if found:
         simpan_data()
         print("data tarif tol berhasil di perbarui")
-            
-
     else:
         print("id ga ketemu pale")
 
@@ -315,14 +308,12 @@ def hapus_tarif(tarif):
         return
     id_hapus = input_teks("masukan id rute yang mau dihapus: ")
     found = False
-
     for i in tarif:
         if i["id"].lower() == id_hapus.lower():
             found = True
             print("Data ditemukan")
             print("asal: " + i["asal"])
             print("tujuan: " + i["tujuan"])
-
             konfirmasi = input("apakah anda yakin ingin menghapus data ini? (y/n): ")
             if konfirmasi == "y" or konfirmasi == "Y":
                 tarif.remove(i)
@@ -332,14 +323,31 @@ def hapus_tarif(tarif):
                 print("\n penghapusan dibatalkan")
             time.sleep(2)
             break
-
     if not found:
         print(f"\n ID rute '{id_hapus}' tidak ditemukan!")
         time.sleep(2)
 
-if __name__ == "__main__":
+
+#-------------PILIHAN 2 MENU ADMIN--------------
+def daftar_user(users):
+    tabel = PrettyTable(["No", "Username", "Role", "Saldo"])
+    nomor = 1
+    for nama in users:
+        tabel.add_row([nomor, nama, users[nama]["role"], format_rupiah(users[nama]["saldo"])])
+        nomor += 1
+    print(tabel)
+    konfir()
+
+
+#-------------PILIHAN 3 MENU ADMIN-------------
+def riwayat_transaksi():
+    isisi
+
+
+def main():
+    if __name__ == "__main__":
     # Muat data dari file JSON saat program pertama kali dibuka
-    users, tarif, transaksi = muat_data()
+        users, tarif, transaksi = muat_data()
     
     while True:
         bersihkan_layar()
@@ -358,7 +366,7 @@ if __name__ == "__main__":
                     menu_admin(nama_user, users, tarif, transaksi)
                 else:
                     print(f"Halo {nama_user}! Menu User akan segera dibuat.")
-                    time.sleep(2)
+                time.sleep(2)
         elif menu_awal == 2:
             bersihkan_layar()
             registrasi(users)
@@ -367,7 +375,4 @@ if __name__ == "__main__":
             print("Terima kasih telah menggunakan program ini!")
             break
 
-
-
-        
-    
+main()
