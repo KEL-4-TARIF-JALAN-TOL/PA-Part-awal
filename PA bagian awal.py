@@ -580,6 +580,7 @@ def main():
                 if users[nama_user]["role"] == "admin":
                     menu_admin(users, tarif, transaksi)
                 else:
+                    menu_user(nama_user, users, tarif, transaksi)
                     print(f"Halo {nama_user}! Menu User akan segera dibuat.")
                 time.sleep(2)
         elif menu_awal == 2:
