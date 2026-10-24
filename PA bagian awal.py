@@ -55,6 +55,15 @@ def input_teks(pesan):
             return teks
         print("Input tidak boleh kosong!")
 
+def input_ya_tidak(pesan):
+    while True:
+        jawab = input(pesan).strip().lower()
+        if jawab == "y":
+                return True
+        elif jawab == "n":
+            return False
+        print("Jawab dengan y atau n saja!")
+
 
 # PENYIMPANAN DATA (JSON)
 def data_default_users():
@@ -114,7 +123,6 @@ def cari_username(username, users):
             return nama
     return None
 
-
 def validasi_username(username, users):
     """Return (valid: bool, pesan: str)."""
     if len(username) < 4 or len(username) > 15:
@@ -132,6 +140,25 @@ def validasi_password(password):
     if not any(char.isalpha() for char in password) or not any(char.isdigit() for char in password):
         return False, "Password harus mengandung huruf dan angka."
     return True, "OK"
+
+def validasi_id_rute(id_rute):
+    """Format ID rute harus seperti R001. Return (valid, pesan)."""
+    if len(id_rute) != 4:
+        return False, "ID harus 4 karakter (contoh: R001)."
+    if not id_rute.startswith("R"):
+        return False, "ID harus diawali huruf R."
+    if not id_rute[1:].isdigit():
+        return False, "Setelah huruf R harus 3 digit angka (contoh: R001)."
+    return True, "OK"
+
+
+def cari_rute(tarif, id_rute):
+    """Cari rute berdasarkan ID. Return datanya (dictionary) atau None."""
+    for rute in tarif:
+        if rute["id"].lower() == id_rute.lower():
+            return rute
+    return None
+
 
 
 # AUTENTIKASI 
@@ -155,7 +182,7 @@ def registrasi(users):
         print("Password tidak sama!")
         return None
 
-    users[username] = {"password": pwinput(password), "role": "user", "saldo": 0}
+    users[username] = {"password": password, "role": "user", "saldo": 0}
     simpan_data()
     print(f"Registrasi berhasil! Silakan login, {username}.")
     return username
@@ -175,7 +202,7 @@ def login(users):
     time.sleep(1)
     return None
 
-def menu_admin(users, tarif, tranksaksi):
+def menu_admin(users, tarif, transaksi):
     while True:
         bersihkan_layar()
         print("SELAMAT DATANG DI MENU ADMIN")
@@ -192,9 +219,9 @@ def menu_admin(users, tarif, tranksaksi):
         elif pilihan == 2:
             daftar_user(users)
         elif pilihan == 3:
-            riwayat_transaksi(tranksaksi)
+            riwayat_transaksi(transaksi)
         elif pilihan == 4:
-            laporan(..)
+            laporan(transaksi)
         else:
             print("Log out berhasil. Kembali ke menu utama")
             return
@@ -273,6 +300,7 @@ def tampilkan_tarif(tarif):
     print(table)
     konfir()
 
+
 def ubah_tarif(tarif):
     tampilkan_tarif(tarif)
     if len(tarif) == 0:
@@ -340,15 +368,202 @@ def daftar_user(users):
 
 
 #-------------PILIHAN 3 MENU ADMIN-------------
-def riwayat_transaksi():
-    isisi
+
+def riwayat_transaksi(transaksi, username=None):
+    """Kalau username diisi -> riwayat milik user itu saja. Kalau tidak -> semua (admin)."""
+    print("=== RIWAYAT TRANSAKSI ===")
+    tabel = PrettyTable(["Kode", "Waktu", "User", "Tipe", "Nominal", "Keterangan"])
+    ada_data = False
+    for trx in transaksi:
+        if username is None or trx["username"] == username:
+            tabel.add_row([trx["kode"], trx["waktu"], trx["username"],
+                        trx["tipe"], format_rupiah(trx["nominal"]), trx["keterangan"]])
+            ada_data = True
+
+    if ada_data:
+        print(tabel)
+    else:
+        print("Belum ada transaksi.")
+    konfir()
 
 
+
+#-------------PILIHAN 4 MENU ADMIN-------------
+def laporan(transaksi):
+    pendapatan = 0        # total uang dari transaksi bayar tol
+    jumlah_bayar = 0      # berapa kali transaksi bayar
+    total_topup = 0       # total uang top up yang masuk
+
+    for trx in transaksi:
+        if trx["tipe"] == "BAYAR":
+            pendapatan += trx["nominal"]
+            jumlah_bayar += 1
+        elif trx["tipe"] == "TOPUP":
+            total_topup += trx["nominal"]
+
+    print("=== LAPORAN RINGKAS ===")
+    print(f"Total pendapatan tol   : {format_rupiah(pendapatan)}")
+    print(f"Jumlah transaksi bayar : {jumlah_bayar}")
+    print(f"Total top up masuk     : {format_rupiah(total_topup)}")
+    konfir()
+
+# ============================================================
+#  MENU USER
+# ============================================================
+def menu_user(username, users, tarif, transaksi):
+    while True:
+        bersihkan_layar()
+        print(f"=== MENU USER ({username}) ===")
+        print("1. Cek saldo")
+        print("2. Top up saldo")
+        print("3. Bayar tol")
+        print("4. Riwayat transaksi saya")
+        print("5. Logout")
+        pilihan = input_int("Pilih nomor (1-5): ", 1, 5)
+
+        bersihkan_layar()
+        if pilihan == 1:
+            print(f"Saldo Anda: {format_rupiah(users[username]['saldo'])}")
+            konfir()
+        elif pilihan == 2:
+            top_up(username, users, transaksi)
+        elif pilihan == 3:
+            bayar_tol(username, users, tarif, transaksi)
+        elif pilihan == 4:
+            riwayat_transaksi(transaksi, username)
+        else:
+            print("Logout berhasil. Kembali ke menu utama.")
+            time.sleep(1)
+            return
+
+
+def top_up(username, users, transaksi):
+    print("=== TOP UP SALDO ===")
+    print(f"Saldo saat ini : {format_rupiah(users[username]['saldo'])}")
+    nominal = input_int(f"Nominal top up (min {format_rupiah(MIN_TOPUP)}): ", MIN_TOPUP)
+
+    # Saldo tidak boleh melebihi batas maksimal
+    if users[username]["saldo"] + nominal > MAX_SALDO:
+        print(f"[!] Gagal. Saldo maksimal adalah {format_rupiah(MAX_SALDO)}.")
+        konfir()
+        return
+
+    users[username]["saldo"] += nominal
+    data = catat_transaksi(transaksi, username, "TOPUP", nominal, "Top up saldo")
+    print("[✓] Top up berhasil!")
+    cetak_invoice(data, users[username]["saldo"])
+    konfir()
+
+def cetak_tabel_tarif(tarif):
+    """Hanya mencetak tabel (tanpa konfirmasi), dipakai di banyak tempat."""
+    table = PrettyTable()
+    table.field_names = ["ID", "Asal", "Tujuan", "Tarif Dasar (Gol I)"]
+    for rute in tarif:
+        table.add_row([rute["id"], rute["asal"], rute["tujuan"], format_rupiah(rute["tarif_dasar"])])
+    print(table)
+
+
+def bayar_tol(username, users, tarif, transaksi):
+    print("=== BAYAR TOL ===")
+    if len(tarif) == 0:
+        print("Belum ada data tarif tol.")
+        konfir()
+        return
+
+    # 1. Pilih rute
+    cetak_tabel_tarif(tarif)
+    id_rute = input_teks("\nMasukkan ID rute yang dilewati: ")
+    rute = cari_rute(tarif, id_rute)
+    if rute is None:
+        print(f"[!] ID rute '{id_rute}' tidak ditemukan.")
+        konfir()
+        return
+
+    # 2. Pilih golongan kendaraan
+    tabel = PrettyTable(["No", "Golongan", "Jenis Kendaraan", "Pengali Tarif"])
+    nomor = 1
+    for gol in GOLONGAN:
+        tabel.add_row([nomor, gol[0], gol[1], gol[2]])
+        nomor += 1
+    print(tabel)
+    pilihan = input_int(f"Pilih golongan (1-{len(GOLONGAN)}): ", 1, len(GOLONGAN))
+    golongan = GOLONGAN[pilihan - 1]       # index mulai dari 0, jadi dikurangi 1
+
+    # 3. Hitung biaya = tarif dasar x pengali golongan
+    biaya = int(rute["tarif_dasar"] * golongan[2])
+    saldo = users[username]["saldo"]
+
+    print(f"\nRute      : {rute['asal']} - {rute['tujuan']}")
+    print(f"Golongan  : {golongan[0]} ({golongan[1]})")
+    print(f"Biaya     : {format_rupiah(biaya)}")
+    print(f"Saldo Anda: {format_rupiah(saldo)}")
+
+    # 4. Saldo tidak boleh jadi negatif
+    if saldo < biaya:
+        print(f"[!] Saldo tidak cukup. Kurang {format_rupiah(biaya - saldo)}. Silakan top up dulu.")
+        konfir()
+        return
+
+    # 5. Konfirmasi lalu bayar
+    if not input_ya_tidak("Lanjutkan pembayaran? (y/n): "):
+        print("Pembayaran dibatalkan.")
+        konfir()
+        return
+
+    users[username]["saldo"] -= biaya
+    keterangan = f"{rute['asal']} - {rute['tujuan']} (Gol {golongan[0]})"
+    data = catat_transaksi(transaksi, username, "BAYAR", biaya, keterangan)
+    print("[✓] Pembayaran berhasil!")
+    cetak_invoice(data, users[username]["saldo"])
+    konfir()
+
+
+
+
+# ============================================================
+#  FUNGSI TRANSAKSI (dipakai Admin & User)
+# ============================================================
+def buat_kode_transaksi(transaksi):
+    """Bikin kode unik: TRX0001, TRX0002, dst."""
+    nomor = len(transaksi) + 1
+    return "TRX" + str(nomor).zfill(4)
+
+
+def catat_transaksi(transaksi, username, tipe, nominal, keterangan):
+    """Simpan 1 transaksi ke list lalu ke file JSON. Return data transaksinya."""
+    data = {
+        "kode": buat_kode_transaksi(transaksi),
+        "waktu": waktu_sekarang(),
+        "username": username,
+        "tipe": tipe,              # "BAYAR" atau "TOPUP"
+        "nominal": nominal,
+        "keterangan": keterangan,
+    }
+    transaksi.append(data)
+    simpan_data()
+    return data
+
+
+def cetak_invoice(data, saldo_akhir):
+    """Tampilkan struk/invoice setelah transaksi berhasil."""
+    print("\n" + "=" * 38)
+    print("              INVOICE")
+    print("=" * 38)
+    print(f"Kode       : {data['kode']}")
+    print(f"Waktu      : {data['waktu']}")
+    print(f"Username   : {data['username']}")
+    print(f"Jenis      : {data['tipe']}")
+    print(f"Keterangan : {data['keterangan']}")
+    print(f"Nominal    : {format_rupiah(data['nominal'])}")
+    print(f"Saldo akhir: {format_rupiah(saldo_akhir)}")
+    print("=" * 38)
+
+
+
+# MENU UTAMAA
 def main():
-    if __name__ == "__main__":
     # Muat data dari file JSON saat program pertama kali dibuka
-        users, tarif, transaksi = muat_data()
-    
+    users, tarif, transaksi = muat_data()
     while True:
         bersihkan_layar()
         print("1. Login")
@@ -363,7 +578,7 @@ def main():
             if nama_user:
                 # Cek role user yang login
                 if users[nama_user]["role"] == "admin":
-                    menu_admin(nama_user, users, tarif, transaksi)
+                    menu_admin(users, tarif, transaksi)
                 else:
                     print(f"Halo {nama_user}! Menu User akan segera dibuat.")
                 time.sleep(2)
@@ -372,7 +587,9 @@ def main():
             registrasi(users)
             time.sleep(2)
         elif menu_awal == 3:
+            bersihkan_layar()
             print("Terima kasih telah menggunakan program ini!")
             break
 
-main()
+if __name__ == "__main__":
+    main()
