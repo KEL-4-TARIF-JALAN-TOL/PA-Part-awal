@@ -8,7 +8,6 @@ FILE_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "PA_Tarif_t
 
 DATABASE = {"users": {}, "tarif": [], "transaksi": []}
 
-MAX_LOGIN = 3
 MIN_TOPUP = 10000
 MAX_SALDO = 5000000
 
@@ -66,25 +65,11 @@ def input_ya_tidak(pesan):
 
 
 # PENYIMPANAN DATA (JSON)
-def data_default_users():
+def data_awal():
+    #Data kosong, hanya berisi akun admin supaya program tetap bisa dipakai.
     return {
-        "admin": {"password":"admin123", "role": "admin", "saldo": 0}
-    }
-
-def data_default_tarif():
-    return [
-        {"id": "R001", "asal": "Cawang", "tujuan": "Tomang", "tarif_dasar": 10000},
-        {"id": "R002", "asal": "Tomang", "tujuan": "Cengkareng", "tarif_dasar": 9500},
-        {"id": "R003", "asal": "Jakarta", "tujuan": "Cikampek", "tarif_dasar": 17000},
-        {"id": "R004", "asal": "Cikampek", "tujuan": "Palimanan", "tarif_dasar": 50000},
-        {"id": "R005", "asal": "Semarang", "tujuan": "Solo", "tarif_dasar": 38000},
-        {"id": "R006", "asal": "Surabaya", "tujuan": "Gempol", "tarif_dasar": 12500},
-    ]
-
-def data_default():
-    return {
-        "users": data_default_users(),
-        "tarif": data_default_tarif(),
+        "users": {"admin": {"password": "admin123", "role": "admin", "saldo": 0}},
+        "tarif": [],
         "transaksi": [],
     }
 
@@ -107,10 +92,10 @@ def muat_data():
             raise ValueError("Struktur data tidak sesuai")
     except FileNotFoundError:
         print("PA_Tarif_tol.json belum ada, membuat file baru...")
-        data = data_default()
+        data = data_awal()
     except (json.JSONDecodeError, ValueError, KeyError, TypeError):
-        print("PA_Tarif_tol.json rusak/tidak valid, dibuat ulang dengan data default.")
-        data = data_default()
+        print("PA_Tarif_tol.json rusak/tidak valid, dibuat ulang dengan data kosong.")
+        data = data_awal()
 
     DATABASE["users"] = data["users"]
     DATABASE["tarif"] = data["tarif"]
@@ -124,35 +109,40 @@ def cari_username(username, users):
     for nama in users:
         if nama.lower() == username.lower():
             return nama
-    return None
 
+# Fungsi validasi: kalau salah, tampilkan pesan lalu return False. Kalau benar, return True.
 def validasi_username(username, users):
-    """Return (valid: bool, pesan: str)."""
     if len(username) < 4 or len(username) > 15:
-        return False, "Username harus 4-15 karakter."
-    if not username.replace("_", "").isalnum():
-        return False, "Username hanya boleh huruf, angka, dan underscore (_)."
-    if cari_username(username, users) is not None:
-        return False, "Username sudah dipakai, pilih yang lain."
-    return True, "OK"
+        print("Username harus 4-15 karakter.")
+        return False
+    if not username.isalnum():
+        print("Username hanya boleh huruf dan angka.")
+        return False
+    if cari_username(username, users):
+        print("Username sudah dipakai, pilih yang lain.")
+        return False
+    return True
 
 def validasi_password(password):
-    """Return (valid: bool, pesan: str)."""
     if len(password) < 5:
-        return False, "Password minimal 5 karakter."
+        print("Password minimal 5 karakter.")
+        return False
     if not any(char.isalpha() for char in password) or not any(char.isdigit() for char in password):
-        return False, "Password harus mengandung huruf dan angka."
-    return True, "OK"
+        print("Password harus mengandung huruf dan angka.")
+        return False
+    return True
 
 def validasi_id_rute(id_rute):
-    """Format ID rute harus seperti R001. Return (valid, pesan)."""
     if len(id_rute) != 4:
-        return False, "ID harus 4 karakter (contoh: R001)."
+        print("ID harus 4 karakter (contoh: R001).")
+        return False
     if not id_rute.startswith("R"):
-        return False, "ID harus diawali huruf R."
+        print("ID harus diawali huruf R.")
+        return False
     if not id_rute[1:].isdigit():
-        return False, "Setelah huruf R harus 3 digit angka (contoh: R001)."
-    return True, "OK"
+        print("Setelah huruf R harus 3 digit angka (contoh: R001).")
+        return False
+    return True
 
 
 def cari_rute(tarif, id_rute):
@@ -160,50 +150,42 @@ def cari_rute(tarif, id_rute):
     for rute in tarif:
         if rute["id"].lower() == id_rute.lower():
             return rute
-    return None
 
 
 
 # AUTENTIKASI 
 def registrasi(users):
-    """Registrasi akun User baru. Return username jika berhasil, else None."""
     print("=== REGISTRASI AKUN ===")
-    username = input_teks("Username (4-15 karakter) : ")
-    valid, pesan = validasi_username(username, users)
-    if not valid:
-        print(f" {pesan}")
-        return None
+    username = input_teks("Username (4-15 karakter, huruf & angka) : ")
+    if not validasi_username(username, users):
+        return
 
     password = pwinput.pwinput("Password (min 5, huruf+angka): ")
-    valid, pesan = validasi_password(password)
-    if not valid:
-        print (f"{pesan}")
-        return None
+    if not validasi_password(password):
+        return
 
     ulang = pwinput.pwinput("Ulangi password : ")
     if ulang != password:
         print("Password tidak sama!")
-        return None
+        return
 
     users[username] = {"password": password, "role": "user", "saldo": 0}
     simpan_data()
     print(f"Registrasi berhasil! Silakan login, {username}.")
-    return username
 
-
+    
 def login(users):
     print("=== LOGIN ===")
-    for percobaan in range(1, MAX_LOGIN + 1):
+    for percobaan in range(1, 4):
         username = input_teks("Username : ").strip()
         password = pwinput.pwinput("Password : ")
         nama = cari_username(username, users)
         if nama is not None and users[nama]["password"] == (password):
-            print(f"[✓] Login berhasil. Selamat datang, {nama}!")
+            print(f"Login berhasil. Selamat datang, {nama}!")
             return nama
-        print(f"[!] Username/password salah. Sisa percobaan: {MAX_LOGIN - percobaan}")
-    print("[!] Login gagal 3x. Kembali ke menu utama.")
+        print(f"[!] Username/password salah. Sisa percobaan: {3 - percobaan}")
+    print("Login gagal 3x. Kembali ke menu utama.")
     time.sleep(1)
-    return None
 
 def menu_admin(users, tarif, transaksi):
     while True:
@@ -375,8 +357,6 @@ def daftar_user(users):
 
 #-------------PILIHAN 3 MENU ADMIN-------------
 
-def riwayat_transaksi(transaksi, username=None):
-    """Kalau username diisi -> riwayat milik user itu saja. Kalau tidak -> semua (admin)."""
     print("=== RIWAYAT TRANSAKSI ===")
     tabel = PrettyTable(["Kode", "Waktu", "User", "Tipe", "Nominal", "Keterangan"])
     ada_data = False
@@ -413,9 +393,8 @@ def laporan(transaksi):
     print(f"Total top up masuk     : {format_rupiah(total_topup)}")
     konfir()
 
-# ============================================================
+    
 #  MENU USER
-# ============================================================
 def menu_user(username, users, tarif, transaksi):
     while True:
         bersihkan_layar()
@@ -450,18 +429,17 @@ def top_up(username, users, transaksi):
 
     # Saldo tidak boleh melebihi batas maksimal
     if users[username]["saldo"] + nominal > MAX_SALDO:
-        print(f"[!] Gagal. Saldo maksimal adalah {format_rupiah(MAX_SALDO)}.")
+        print(f"Gagal. Saldo maksimal adalah {format_rupiah(MAX_SALDO)}.")
         konfir()
         return
 
     users[username]["saldo"] += nominal
     data = catat_transaksi(transaksi, username, "TOPUP", nominal, "Top up saldo")
-    print("[✓] Top up berhasil!")
+    print("Top up berhasil!")
     cetak_invoice(data, users[username]["saldo"])
     konfir()
 
 def cetak_tabel_tarif(tarif):
-    """Hanya mencetak tabel (tanpa konfirmasi), dipakai di banyak tempat."""
     table = PrettyTable()
     table.field_names = ["ID", "Asal", "Tujuan", "Tarif Dasar (Gol I)"]
     for rute in tarif:
@@ -481,7 +459,7 @@ def bayar_tol(username, users, tarif, transaksi):
     id_rute = input_teks("\nMasukkan ID rute yang dilewati: ")
     rute = cari_rute(tarif, id_rute)
     if rute is None:
-        print(f"[!] ID rute '{id_rute}' tidak ditemukan.")
+        print(f"ID rute '{id_rute}' tidak ditemukan.")
         konfir()
         return
 
@@ -506,7 +484,7 @@ def bayar_tol(username, users, tarif, transaksi):
 
     # 4. Saldo tidak boleh jadi negatif
     if saldo < biaya:
-        print(f"[!] Saldo tidak cukup. Kurang {format_rupiah(biaya - saldo)}. Silakan top up dulu.")
+        print(f"Saldo tidak cukup. Kurang {format_rupiah(biaya - saldo)}. Silakan top up dulu.")
         konfir()
         return
 
@@ -519,24 +497,20 @@ def bayar_tol(username, users, tarif, transaksi):
     users[username]["saldo"] -= biaya
     keterangan = f"{rute['asal']} - {rute['tujuan']} (Gol {golongan[0]})"
     data = catat_transaksi(transaksi, username, "BAYAR", biaya, keterangan)
-    print("[✓] Pembayaran berhasil!")
+    print("Pembayaran berhasil!")
     cetak_invoice(data, users[username]["saldo"])
     konfir()
 
 
 
-
-# ============================================================
 #  FUNGSI TRANSAKSI (dipakai Admin & User)
-# ============================================================
 def buat_kode_transaksi(transaksi):
-    """Bikin kode unik: TRX0001, TRX0002, dst."""
     nomor = len(transaksi) + 1
     return "TRX" + str(nomor).zfill(4)
 
 
 def catat_transaksi(transaksi, username, tipe, nominal, keterangan):
-    """Simpan 1 transaksi ke list lalu ke file JSON. Return data transaksinya."""
+    #Simpan 1 transaksi ke list lalu ke file JSON. Return data transaksinya.
     data = {
         "kode": buat_kode_transaksi(transaksi),
         "waktu": waktu_sekarang(),
@@ -551,7 +525,6 @@ def catat_transaksi(transaksi, username, tipe, nominal, keterangan):
 
 
 def cetak_invoice(data, saldo_akhir):
-    """Tampilkan struk/invoice setelah transaksi berhasil."""
     print("\n" + "=" * 38)
     print("              INVOICE")
     print("=" * 38)
