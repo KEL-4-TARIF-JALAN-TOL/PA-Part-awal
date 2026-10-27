@@ -106,9 +106,11 @@ def muat_data():
 
 #  VALIDASI
 def cari_username(username, users):
+    #Cari username (huruf besar/kecil sama). Kalau ga ada, hasilnya None.
     for nama in users:
         if nama.lower() == username.lower():
             return nama
+
 
 # Fungsi validasi: kalau salah, tampilkan pesan lalu return False. Kalau benar, return True.
 def validasi_username(username, users):
@@ -133,6 +135,7 @@ def validasi_password(password):
     return True
 
 def validasi_id_rute(id_rute):
+    """Format ID rute harus seperti R001."""
     if len(id_rute) != 4:
         print("ID harus 4 karakter (contoh: R001).")
         return False
@@ -146,7 +149,7 @@ def validasi_id_rute(id_rute):
 
 
 def cari_rute(tarif, id_rute):
-    """Cari rute berdasarkan ID. Return datanya (dictionary) atau None."""
+    """Cari rute berdasarkan ID. Kalau tidak ada, hasilnya None."""
     for rute in tarif:
         if rute["id"].lower() == id_rute.lower():
             return rute
@@ -155,6 +158,7 @@ def cari_rute(tarif, id_rute):
 
 # AUTENTIKASI 
 def registrasi(users):
+    """Registrasi akun User baru."""
     print("=== REGISTRASI AKUN ===")
     username = input_teks("Username (4-15 karakter, huruf & angka) : ")
     if not validasi_username(username, users):
@@ -173,7 +177,7 @@ def registrasi(users):
     simpan_data()
     print(f"Registrasi berhasil! Silakan login, {username}.")
 
-    
+
 def login(users):
     print("=== LOGIN ===")
     for percobaan in range(1, 4):
@@ -181,10 +185,10 @@ def login(users):
         password = pwinput.pwinput("Password : ")
         nama = cari_username(username, users)
         if nama is not None and users[nama]["password"] == (password):
-            print(f"Login berhasil. Selamat datang, {nama}!")
+            print(f"[✓] Login berhasil. Selamat datang, {nama}!")
             return nama
         print(f"[!] Username/password salah. Sisa percobaan: {3 - percobaan}")
-    print("Login gagal 3x. Kembali ke menu utama.")
+    print("[!] Login gagal 3x. Kembali ke menu utama.")
     time.sleep(1)
 
 def menu_admin(users, tarif, transaksi):
@@ -252,23 +256,9 @@ def tambah_tarif(tarif):
     print("TAMBAH TARIF TOL BARU")
     while True:
         id_baru = input_teks("Masukan ID Rute (misal: R007): ").upper()
-        
-        if len(id_baru) != 4:
-            print("format harus empat karakter")
+        if not validasi_id_rute(id_baru):
             continue
-        if not id_baru.startswith("R"):
-            print("id harus diawali dengan R")
-            continue
-        angka_bagian = id_baru[1:]
-        if not angka_bagian.isdigit():
-            print("Setelah huruf 'R' harus berupa 3 digit angka (Contoh: R001)!")
-            continue
-        duplicate = False 
-        for item in tarif:
-            if item["id"] == id_baru.upper():
-                duplicate = True
-                break
-        if duplicate:
+        if cari_rute(tarif, id_baru):
             print("ID SUDAH TERDAFTAR")
         else:
             break
@@ -291,30 +281,24 @@ def ubah_tarif(tarif):
     if len(tarif) == 0:
         print("belum ada data tarif yang bisa diubah")
         return
-    id_cari = input_teks("masukan id rute yang ingin diubah: ")
-    if len(id_cari) != 4:
-        print("format harus empat karakter")
-    if not id_cari.startswith("R"):
-        print("id harus diawali dengan R")
-    angka_bagian = id_cari[1:]
-    if not angka_bagian.isdigit():
-        print("Setelah huruf 'R' harus berupa 3 digit angka (Contoh: R001)!")
-    found = False
-    for i in tarif:
-        if i["id"].lower() == id_cari.lower():
-            found = True 
-            print("DATA DITEMUKAN. MASUKAN DATA BARU (KOSONGKAN ATAU ISI ULANG): ")
-            i["asal"] = input_teks(f"Asal [{i['asal']}]: ")
-            i["tujuan"] = input_teks(f"Tujuan [{i['tujuan']}]: ")
-            i["tarif_dasar"] = input_int(f"Tarif Dasar [{i['tarif_dasar']}]: ", 1000, 10000000)
-            break
-    if found:
-        simpan_data()
-        print("data tarif tol berhasil di perbarui")
+    id_cari = input_teks("masukan id rute yang ingin diubah: ").upper()
+    if not validasi_id_rute(id_cari):
         time.sleep(2)
-    else:
-        print("id ga ketemu pale")
+        return
+
+    rute = cari_rute(tarif, id_cari)
+    if rute is None:
+        print(f"ID rute '{id_cari}' tidak ditemukan!")
         time.sleep(2)
+        return
+
+    print("DATA DITEMUKAN. MASUKAN DATA BARU:")
+    rute["asal"] = input_teks(f"Asal [{rute['asal']}]: ")
+    rute["tujuan"] = input_teks(f"Tujuan [{rute['tujuan']}]: ")
+    rute["tarif_dasar"] = input_int(f"Tarif Dasar [{rute['tarif_dasar']}]: ", 1000, 10000000)
+    simpan_data()
+    print("data tarif tol berhasil di perbarui")
+    time.sleep(2)
 
 def hapus_tarif(tarif):
     tampilkan_tarif(tarif)
@@ -357,6 +341,8 @@ def daftar_user(users):
 
 #-------------PILIHAN 3 MENU ADMIN-------------
 
+def riwayat_transaksi(transaksi, username=None):
+    #Kalau username diisi = riwayat milik user itu saja. Kalau tidak = semua (admin).
     print("=== RIWAYAT TRANSAKSI ===")
     tabel = PrettyTable(["Kode", "Waktu", "User", "Tipe", "Nominal", "Keterangan"])
     ada_data = False
@@ -393,8 +379,9 @@ def laporan(transaksi):
     print(f"Total top up masuk     : {format_rupiah(total_topup)}")
     konfir()
 
-    
+# ============================================================
 #  MENU USER
+# ============================================================
 def menu_user(username, users, tarif, transaksi):
     while True:
         bersihkan_layar()
@@ -429,17 +416,18 @@ def top_up(username, users, transaksi):
 
     # Saldo tidak boleh melebihi batas maksimal
     if users[username]["saldo"] + nominal > MAX_SALDO:
-        print(f"Gagal. Saldo maksimal adalah {format_rupiah(MAX_SALDO)}.")
+        print(f"[!] Gagal. Saldo maksimal adalah {format_rupiah(MAX_SALDO)}.")
         konfir()
         return
 
     users[username]["saldo"] += nominal
     data = catat_transaksi(transaksi, username, "TOPUP", nominal, "Top up saldo")
-    print("Top up berhasil!")
+    print("[✓] Top up berhasil!")
     cetak_invoice(data, users[username]["saldo"])
     konfir()
 
 def cetak_tabel_tarif(tarif):
+    #Hanya mencetak tabel (tanpa konfirmasi), dipakai di banyak tempat.
     table = PrettyTable()
     table.field_names = ["ID", "Asal", "Tujuan", "Tarif Dasar (Gol I)"]
     for rute in tarif:
@@ -459,7 +447,7 @@ def bayar_tol(username, users, tarif, transaksi):
     id_rute = input_teks("\nMasukkan ID rute yang dilewati: ")
     rute = cari_rute(tarif, id_rute)
     if rute is None:
-        print(f"ID rute '{id_rute}' tidak ditemukan.")
+        print(f"[!] ID rute '{id_rute}' tidak ditemukan.")
         konfir()
         return
 
@@ -484,7 +472,7 @@ def bayar_tol(username, users, tarif, transaksi):
 
     # 4. Saldo tidak boleh jadi negatif
     if saldo < biaya:
-        print(f"Saldo tidak cukup. Kurang {format_rupiah(biaya - saldo)}. Silakan top up dulu.")
+        print(f"[!] Saldo tidak cukup. Kurang {format_rupiah(biaya - saldo)}. Silakan top up dulu.")
         konfir()
         return
 
@@ -497,20 +485,24 @@ def bayar_tol(username, users, tarif, transaksi):
     users[username]["saldo"] -= biaya
     keterangan = f"{rute['asal']} - {rute['tujuan']} (Gol {golongan[0]})"
     data = catat_transaksi(transaksi, username, "BAYAR", biaya, keterangan)
-    print("Pembayaran berhasil!")
+    print("[✓] Pembayaran berhasil!")
     cetak_invoice(data, users[username]["saldo"])
     konfir()
 
 
 
+
+# ============================================================
 #  FUNGSI TRANSAKSI (dipakai Admin & User)
+# ============================================================
 def buat_kode_transaksi(transaksi):
+    #Bikin kode unik
     nomor = len(transaksi) + 1
     return "TRX" + str(nomor).zfill(4)
 
 
 def catat_transaksi(transaksi, username, tipe, nominal, keterangan):
-    #Simpan 1 transaksi ke list lalu ke file JSON. Return data transaksinya.
+    """Simpan 1 transaksi ke list lalu ke file JSON. Return data transaksinya."""
     data = {
         "kode": buat_kode_transaksi(transaksi),
         "waktu": waktu_sekarang(),
@@ -525,6 +517,7 @@ def catat_transaksi(transaksi, username, tipe, nominal, keterangan):
 
 
 def cetak_invoice(data, saldo_akhir):
+    #Tampilkan struk/invoice pas transaksi berhasil.
     print("\n" + "=" * 38)
     print("              INVOICE")
     print("=" * 38)
