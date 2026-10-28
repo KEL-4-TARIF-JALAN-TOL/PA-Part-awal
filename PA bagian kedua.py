@@ -8,6 +8,7 @@ FILE_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "PA_Tarif_t
 
 DATABASE = {"users": {}, "tarif": [], "transaksi": []}
 
+MAX_LOGIN = 3
 MIN_TOPUP = 10000
 MAX_SALDO = 5000000
 
@@ -65,11 +66,25 @@ def input_ya_tidak(pesan):
 
 
 # PENYIMPANAN DATA (JSON)
-def data_awal():
-    #Data kosong, hanya berisi akun admin supaya program tetap bisa dipakai.
+def data_default_users():
     return {
-        "users": {"admin": {"password": "admin123", "role": "admin", "saldo": 0}},
-        "tarif": [],
+        "admin": {"password":"admin123", "role": "admin", "saldo": 0}
+    }
+
+def data_default_tarif():
+    return [
+        {"id": "R001", "asal": "Cawang", "tujuan": "Tomang", "tarif_dasar": 10000},
+        {"id": "R002", "asal": "Tomang", "tujuan": "Cengkareng", "tarif_dasar": 9500},
+        {"id": "R003", "asal": "Jakarta", "tujuan": "Cikampek", "tarif_dasar": 17000},
+        {"id": "R004", "asal": "Cikampek", "tujuan": "Palimanan", "tarif_dasar": 50000},
+        {"id": "R005", "asal": "Semarang", "tujuan": "Solo", "tarif_dasar": 38000},
+        {"id": "R006", "asal": "Surabaya", "tujuan": "Gempol", "tarif_dasar": 12500},
+    ]
+
+def data_default():
+    return {
+        "users": data_default_users(),
+        "tarif": data_default_tarif(),
         "transaksi": [],
     }
 
@@ -92,10 +107,10 @@ def muat_data():
             raise ValueError("Struktur data tidak sesuai")
     except FileNotFoundError:
         print("PA_Tarif_tol.json belum ada, membuat file baru...")
-        data = data_awal()
+        data = data_default()
     except (json.JSONDecodeError, ValueError, KeyError, TypeError):
-        print("PA_Tarif_tol.json rusak/tidak valid, dibuat ulang dengan data kosong.")
-        data = data_awal()
+        print("PA_Tarif_tol.json rusak/tidak valid, dibuat ulang dengan data default.")
+        data = data_default()
 
     DATABASE["users"] = data["users"]
     DATABASE["tarif"] = data["tarif"]
@@ -106,90 +121,89 @@ def muat_data():
 
 #  VALIDASI
 def cari_username(username, users):
-    #Cari username (huruf besar/kecil sama). Kalau ga ada, hasilnya None.
     for nama in users:
         if nama.lower() == username.lower():
             return nama
+    return None
 
-
-# Fungsi validasi: kalau salah, tampilkan pesan lalu return False. Kalau benar, return True.
 def validasi_username(username, users):
+    """Return (valid: bool, pesan: str)."""
     if len(username) < 4 or len(username) > 15:
-        print("Username harus 4-15 karakter.")
-        return False
-    if not username.isalnum():
-        print("Username hanya boleh huruf dan angka.")
-        return False
-    if cari_username(username, users):
-        print("Username sudah dipakai, pilih yang lain.")
-        return False
-    return True
+        return False, "Username harus 4-15 karakter."
+    if not username.replace("_", "").isalnum():
+        return False, "Username hanya boleh huruf, angka, dan underscore (_)."
+    if cari_username(username, users) is not None:
+        return False, "Username sudah dipakai, pilih yang lain."
+    return True, "OK"
 
 def validasi_password(password):
+    """Return (valid: bool, pesan: str)."""
     if len(password) < 5:
-        print("Password minimal 5 karakter.")
-        return False
+        return False, "Password minimal 5 karakter."
     if not any(char.isalpha() for char in password) or not any(char.isdigit() for char in password):
-        print("Password harus mengandung huruf dan angka.")
-        return False
-    return True
+        return False, "Password harus mengandung huruf dan angka."
+    return True, "OK"
 
 def validasi_id_rute(id_rute):
-    """Format ID rute harus seperti R001."""
+    """Format ID rute harus seperti R001. Return (valid, pesan)."""
     if len(id_rute) != 4:
-        print("ID harus 4 karakter (contoh: R001).")
-        return False
+        return False, "ID harus 4 karakter (contoh: R001)."
     if not id_rute.startswith("R"):
-        print("ID harus diawali huruf R.")
-        return False
+        return False, "ID harus diawali huruf R."
     if not id_rute[1:].isdigit():
-        print("Setelah huruf R harus 3 digit angka (contoh: R001).")
-        return False
-    return True
+        return False, "Setelah huruf R harus 3 digit angka (contoh: R001)."
+    return True, "OK"
 
 
 def cari_rute(tarif, id_rute):
-    """Cari rute berdasarkan ID. Kalau tidak ada, hasilnya None."""
+    """Cari rute berdasarkan ID. Return datanya (dictionary) atau None."""
     for rute in tarif:
         if rute["id"].lower() == id_rute.lower():
             return rute
+    return None
 
 
 
 # AUTENTIKASI 
 def registrasi(users):
-    """Registrasi akun User baru."""
+    """Registrasi akun User baru. Return username jika berhasil, else None."""
     print("=== REGISTRASI AKUN ===")
-    username = input_teks("Username (4-15 karakter, huruf & angka) : ")
-    if not validasi_username(username, users):
-        return
+    username = input_teks("Username (4-15 karakter) : ")
+    valid, pesan = validasi_username(username, users)
+    if not valid:
+        print(f" {pesan}")
+        return None
 
     password = pwinput.pwinput("Password (min 5, huruf+angka): ")
-    if not validasi_password(password):
-        return
+    valid, pesan = validasi_password(password)
+    if not valid:
+        print (f"{pesan}")
+        return None
 
     ulang = pwinput.pwinput("Ulangi password : ")
     if ulang != password:
         print("Password tidak sama!")
-        return
+        return None
 
     users[username] = {"password": password, "role": "user", "saldo": 0}
     simpan_data()
     print(f"Registrasi berhasil! Silakan login, {username}.")
+    return username
 
 
 def login(users):
     print("=== LOGIN ===")
-    for percobaan in range(1, 4):
+    for percobaan in range(1, MAX_LOGIN + 1):
         username = input_teks("Username : ").strip()
         password = pwinput.pwinput("Password : ")
         nama = cari_username(username, users)
         if nama is not None and users[nama]["password"] == (password):
             print(f"[✓] Login berhasil. Selamat datang, {nama}!")
             return nama
-        print(f"[!] Username/password salah. Sisa percobaan: {3 - percobaan}")
+        print(f"[!] Username/password salah. Sisa percobaan: {MAX_LOGIN - percobaan}")
     print("[!] Login gagal 3x. Kembali ke menu utama.")
     time.sleep(1)
+    return None
 
 def menu_admin(users, tarif, transaksi):
     while True:
@@ -256,16 +270,30 @@ def tambah_tarif(tarif):
     print("TAMBAH TARIF TOL BARU")
     while True:
         id_baru = input_teks("Masukan ID Rute (misal: R007): ").upper()
-        if not validasi_id_rute(id_baru):
+        
+        if len(id_baru) != 4:
+            print("format harus empat karakter")
             continue
-        if cari_rute(tarif, id_baru):
+        if not id_baru.startswith("R"):
+            print("id harus diawali dengan R")
+            continue
+        angka_bagian = id_baru[1:]
+        if not angka_bagian.isdigit():
+            print("Setelah huruf 'R' harus berupa 3 digit angka (Contoh: R001)!")
+            continue
+        duplicate = False 
+        for item in tarif:
+            if item["id"] == id_baru.upper():
+                duplicate = True
+                break
+        if duplicate:
             print("ID SUDAH TERDAFTAR")
         else:
             break
     asal = input_teks("kota/gerbang asal: ")
     tujuan = input_teks("kota/gerbang tujuan: ")
     tarif_dasar = input_int("tarif dasar golongan I (Rp): ", 10000, 1000000)
-    data_baru =      {
+    data_baru =       {
         "id" : id_baru,
         "asal" : asal,
         "tujuan" : tujuan,
@@ -281,24 +309,30 @@ def ubah_tarif(tarif):
     if len(tarif) == 0:
         print("belum ada data tarif yang bisa diubah")
         return
-    id_cari = input_teks("masukan id rute yang ingin diubah: ").upper()
-    if not validasi_id_rute(id_cari):
+    id_cari = input_teks("masukan id rute yang ingin diubah: ")
+    if len(id_cari) != 4:
+        print("format harus empat karakter")
+    if not id_cari.startswith("R"):
+        print("id harus diawali dengan R")
+    angka_bagian = id_cari[1:]
+    if not angka_bagian.isdigit():
+        print("Setelah huruf 'R' harus berupa 3 digit angka (Contoh: R001)!")
+    found = False
+    for i in tarif:
+        if i["id"].lower() == id_cari.lower():
+            found = True 
+            print("DATA DITEMUKAN. MASUKAN DATA BARU (KOSONGKAN ATAU ISI ULANG): ")
+            i["asal"] = input_teks(f"Asal [{i['asal']}]: ")
+            i["tujuan"] = input_teks(f"Tujuan [{i['tujuan']}]: ")
+            i["tarif_dasar"] = input_int(f"Tarif Dasar [{i['tarif_dasar']}]: ", 1000, 10000000)
+            break
+    if found:
+        simpan_data()
+        print("data tarif tol berhasil di perbarui")
         time.sleep(2)
-        return
-
-    rute = cari_rute(tarif, id_cari)
-    if rute is None:
-        print(f"ID rute '{id_cari}' tidak ditemukan!")
+    else:
+        print("id ga ketemu pale")
         time.sleep(2)
-        return
-
-    print("DATA DITEMUKAN. MASUKAN DATA BARU:")
-    rute["asal"] = input_teks(f"Asal [{rute['asal']}]: ")
-    rute["tujuan"] = input_teks(f"Tujuan [{rute['tujuan']}]: ")
-    rute["tarif_dasar"] = input_int(f"Tarif Dasar [{rute['tarif_dasar']}]: ", 1000, 10000000)
-    simpan_data()
-    print("data tarif tol berhasil di perbarui")
-    time.sleep(2)
 
 def hapus_tarif(tarif):
     tampilkan_tarif(tarif)
@@ -342,14 +376,14 @@ def daftar_user(users):
 #-------------PILIHAN 3 MENU ADMIN-------------
 
 def riwayat_transaksi(transaksi, username=None):
-    #Kalau username diisi = riwayat milik user itu saja. Kalau tidak = semua (admin).
+    """Kalau username diisi -> riwayat milik user itu saja. Kalau tidak -> semua (admin)."""
     print("=== RIWAYAT TRANSAKSI ===")
     tabel = PrettyTable(["Kode", "Waktu", "User", "Tipe", "Nominal", "Keterangan"])
     ada_data = False
     for trx in transaksi:
         if username is None or trx["username"] == username:
             tabel.add_row([trx["kode"], trx["waktu"], trx["username"],
-                        trx["tipe"], format_rupiah(trx["nominal"]), trx["keterangan"]])
+                            trx["tipe"], format_rupiah(trx["nominal"]), trx["keterangan"]])
             ada_data = True
 
     if ada_data:
@@ -427,7 +461,7 @@ def top_up(username, users, transaksi):
     konfir()
 
 def cetak_tabel_tarif(tarif):
-    #Hanya mencetak tabel (tanpa konfirmasi), dipakai di banyak tempat.
+    """Hanya mencetak tabel (tanpa konfirmasi), dipakai di banyak tempat."""
     table = PrettyTable()
     table.field_names = ["ID", "Asal", "Tujuan", "Tarif Dasar (Gol I)"]
     for rute in tarif:
@@ -459,7 +493,7 @@ def bayar_tol(username, users, tarif, transaksi):
         nomor += 1
     print(tabel)
     pilihan = input_int(f"Pilih golongan (1-{len(GOLONGAN)}): ", 1, len(GOLONGAN))
-    golongan = GOLONGAN[pilihan - 1]       # index mulai dari 0, jadi dikurangi 1
+    golongan = GOLONGAN[pilihan - 1]      # index mulai dari 0, jadi dikurangi 1
 
     # 3. Hitung biaya = tarif dasar x pengali golongan
     biaya = int(rute["tarif_dasar"] * golongan[2])
@@ -496,7 +530,7 @@ def bayar_tol(username, users, tarif, transaksi):
 #  FUNGSI TRANSAKSI (dipakai Admin & User)
 # ============================================================
 def buat_kode_transaksi(transaksi):
-    #Bikin kode unik
+    """Bikin kode unik: TRX0001, TRX0002, dst."""
     nomor = len(transaksi) + 1
     return "TRX" + str(nomor).zfill(4)
 
@@ -517,9 +551,9 @@ def catat_transaksi(transaksi, username, tipe, nominal, keterangan):
 
 
 def cetak_invoice(data, saldo_akhir):
-    #Tampilkan struk/invoice pas transaksi berhasil.
+    """Tampilkan struk/invoice setelah transaksi berhasil."""
     print("\n" + "=" * 38)
-    print("              INVOICE")
+    print("            INVOICE")
     print("=" * 38)
     print(f"Kode       : {data['kode']}")
     print(f"Waktu      : {data['waktu']}")
@@ -534,34 +568,37 @@ def cetak_invoice(data, saldo_akhir):
 
 # MENU UTAMAA
 def main():
-    # Muat data dari file JSON saat program pertama kali dibuka
     users, tarif, transaksi = muat_data()
     while True:
-        bersihkan_layar()
-        print("1. Login")
-        print("2. Registrasi Akun Baru")
-        print("3. Keluar Program")
-        
-        menu_awal = input_int("Pilih menu (1-3): ", 1, 3)
-        
-        if menu_awal == 1:
+        try:
             bersihkan_layar()
-            nama_user = login(users)
-            if nama_user:
-                # Cek role user yang login
-                if users[nama_user]["role"] == "admin":
-                    menu_admin(users, tarif, transaksi)
-                else:
-                    menu_user(nama_user, users, tarif, transaksi)
+            print("1. Login")
+            print("2. Registrasi Akun Baru")
+            print("3. Keluar Program")
+            
+            menu_awal = input_int("Pilih menu (1-3): ", 1, 3)
+            
+            if menu_awal == 1:
+                bersihkan_layar()
+                nama_user = login(users)
+                if nama_user:
+                    # Cek role user yang login
+                    if users[nama_user]["role"] == "admin":
+                        menu_admin(users, tarif, transaksi)
+                    else:
+                        menu_user(nama_user, users, tarif, transaksi)
+                    time.sleep(2)
+            elif menu_awal == 2:
+                bersihkan_layar()
+                registrasi(users)
                 time.sleep(2)
-        elif menu_awal == 2:
-            bersihkan_layar()
-            registrasi(users)
+            elif menu_awal == 3:
+                bersihkan_layar()
+                print("Terima kasih telah menggunakan program ini!")
+                break
+        except KeyboardInterrupt:
+            print("\n\n[!] Jangan pakai Ctrl + C!")
             time.sleep(2)
-        elif menu_awal == 3:
-            bersihkan_layar()
-            print("Terima kasih telah menggunakan program ini!")
-            break
 
 if __name__ == "__main__":
     main()
