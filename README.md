@@ -5,15 +5,13 @@
 - Muhammad Zacky Dwi Putra: coding (top up, pembayaran, invoice) & laporan
 - Khasya Fatlaikha: Flowchart
 # deskripsi & tujuan
-- Deskripsi: Sistem tarif jalan tol ini dibuat dengan menggunakan bahasa pemograman Python untuk mengelola rute perjalanan jalan tol, pengaturan tarif dasarm serta transaksi pembayaran secara terpusat dan dinamis. Program ini menggunakan struktur data berbasis JSON untuk penyimpanan data. Serta dilengkapi dengan sistem keamanan autentikasi akun (login dan register), manajemen saldo, serta fitur kalkulasi tarif otomatis berdasarkan golongan kendaraan.
+- Deskripsi: Jalan tol merupakan sarana transportasi yang dibuat untuk memperlancar perjalanan dan mempersingkat waktu tempuh, di mana kendaraan yang masuk wajib membayar tarif sesuai golongan dan aturan yang berlaku. Proses penentuan tarif tol dipengaruhi oleh golongan kendaraan, gerbang tol yang dilewati, serta besaran tarif pada ruas yang digunakan. Program Sistem Tarif Tol berbasis bahasa pemrograman Python ini dirancang untuk mengatasi proses manual yang kurang efisien dan rawan salah hitung. Program berbasis teks (console) ini mengintegrasikan penyimpanan data persisten menggunakan format JSON yang mencakup data pengguna, tarif tol, dan riwayat transaksi, serta menerapkan sistem hak akses terpisah antara Admin dan User.
 - Tujuan:
-Otomatisasi Pengelolaan Tarif: Memudahkan Administrator dalam melakukan operasi CRUD (Create, Read, Update, Delete) data rute dan tarif dasar jalan tol secara efisien.
-
-Kalkulasi Golongan Kendaraan Dinamis: Menerapkan sistem perhitungan tarif otomatis berdasarkan faktor pengali (multiplier) untuk berbagai golongan kendaraan (Golongan I sampai V) tanpa redundansi data di dalam database.
-
-Manajemen Transaksi Pengguna: Memfasilitasi pengguna (User) untuk melakukan pengecekan saldo, top-up saldo dengan validasi batas aman, serta melakukan pembayaran tol secara real-time yang terintegrasi langsung dengan pencatatan riwayat transaksi (history).
-
-Transparansi & Pelaporan: Menyediakan fitur cetak struk pembayaran (invoice) otomatis dan laporan ringkas pendapatan bagi Administrator untuk memantau arus transaksi di dalam sistem.
+1. Membuat program sederhana menggunakan bahasa pemrograman Python untuk menentukan dan menghitung tarif tol berdasarkan data yang tersedia.   
+2. Menerapkan sistem penentuan tarif tol sesuai dengan golongan kendaraan yang dipilih oleh pengguna.   
+3. Menerapkan konsep dasar pemrograman, seperti variabel, input dan output, percabangan, perulangan, serta fungsi untuk mengolah data dan menghitung tarif tol secara otomatis.   
+4. Menampilkan hasil perhitungan tarif tol secara jelas dan mudah dipahami oleh pengguna.   
+5. Mengembangkan program yang dapat meminimalkan kesalahan dalam perhitungan tarif tol melalui pengolahan data dan penerapan logika pemrograman yang tepat.  
 
 # Flowchart
 <img width="2797" height="2032" alt="Flowchart Kelompok 4 pa drawio" src="https://github.com/user-attachments/assets/68364535-0db9-4305-9bb2-9d945a46a93a" />
